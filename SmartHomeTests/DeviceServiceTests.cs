@@ -21,7 +21,7 @@ namespace SmartHomeTests
 
         /// <summary>
         /// Перевірка: [Theory] / [InlineData] та Assert.Equal
-        /// Перевіряє перемикання стану пристрою для різних вхідних прапорців (включити/виключити).
+        /// Перевіряє перемикання стану пристрою для різних вхідних прапорців (увімкнути/вимкнути).
         /// </summary>
         [Theory]
         [InlineData(true, true)]
@@ -125,6 +125,23 @@ namespace SmartHomeTests
         }
 
         /// <summary>
+        /// Перевірка: Assert.NotNull
+        /// Перевіряє, що метод отримання активних пристроїв повертає ініціалізовану колекцію, а не null.
+        /// </summary>
+        [Fact]
+        public void GetActiveDevices_ValidCall_ReturnsNotNull()
+        {
+            // Arrange
+            _repoMock.Setup(r => r.GetAll()).Returns(new List<Device>());
+
+            // Act
+            var activeDevices = _deviceService.GetActiveDevices();
+
+            // Assert
+            Assert.NotNull(activeDevices);
+        }
+
+        /// <summary>
         /// Перевірка: Assert.Contains
         /// Перевіряє, що активний пристрій присутній у списку активних пристроїв.
         /// </summary>
@@ -144,27 +161,39 @@ namespace SmartHomeTests
         }
 
         /// <summary>
-        /// Перевірка: Assert.Empty та Assert.NotEmpty
-        /// Перевіряє порожність та не-порожність списків активних пристроїв.
+        /// Перевірка: Assert.Empty
+        /// Перевіряє, що метод повертає порожній список, якщо всі пристрої вимкнені.
         /// </summary>
         [Fact]
-        public void GetActiveDevices_CheckEmptyAndNotEmpty()
+        public void GetActiveDevices_AllDevicesOff_ReturnsEmpty()
         {
             // Arrange
             var inactiveDevice = new Device { Id = 1, IsOn = false };
-            var activeDevice = new Device { Id = 2, IsOn = true };
-
-            // Act 1: Усі пристрої вимкнені
             _repoMock.Setup(r => r.GetAll()).Returns(new List<Device> { inactiveDevice });
-            var resultEmpty = _deviceService.GetActiveDevices();
 
-            // Act 2: Є увімкнений пристрій
-            _repoMock.Setup(r => r.GetAll()).Returns(new List<Device> { activeDevice });
-            var resultNotEmpty = _deviceService.GetActiveDevices();
+            // Act
+            var result = _deviceService.GetActiveDevices();
 
             // Assert
-            Assert.Empty(resultEmpty);
-            Assert.NotEmpty(resultNotEmpty);
+            Assert.Empty(result);
+        }
+
+        /// <summary>
+        /// Перевірка: Assert.NotEmpty
+        /// Перевіряє, що метод повертає непорожній список, якщо є хоча б один увімкнений пристрій.
+        /// </summary>
+        [Fact]
+        public void GetActiveDevices_HasActiveDevices_ReturnsNotEmpty()
+        {
+            // Arrange
+            var activeDevice = new Device { Id = 2, IsOn = true };
+            _repoMock.Setup(r => r.GetAll()).Returns(new List<Device> { activeDevice });
+
+            // Act
+            var result = _deviceService.GetActiveDevices();
+
+            // Assert
+            Assert.NotEmpty(result);
         }
     }
 }

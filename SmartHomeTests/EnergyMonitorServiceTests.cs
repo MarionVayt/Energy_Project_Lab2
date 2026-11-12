@@ -46,24 +46,7 @@ namespace SmartHomeTests
             var actualKwh = _monitorService.CalculateCurrentUsageKwh();
 
             // Assert
-            Assert.Equal(2.0, actualKwh); // (1500 + 500) / 1000 = 2.0
-        }
-
-        /// <summary>
-        /// Перевірка: Assert.NotNull
-        /// Перевіряє коректне отримання поточного тарифного плану з репозиторію.
-        /// </summary>
-        [Fact]
-        public void GetCurrentPlan_ReturnsNotNullObject()
-        {
-            // Arrange
-            _planRepoMock.Setup(r => r.GetCurrentPlan()).Returns(new EnergyPlan { DailyLimitKwh = 10 });
-
-            // Act
-            var plan = _planRepoMock.Object.GetCurrentPlan();
-
-            // Assert
-            Assert.NotNull(plan);
+            Assert.Equal(2.0, actualKwh);
         }
 
         /// <summary>
@@ -93,7 +76,7 @@ namespace SmartHomeTests
 
         /// <summary>
         /// Перевірка: Verify(..., Times.Never)
-        /// Переконується, що сповіщення НЕ надсилається, якщо споживання не перевищує ліміт.
+        /// Переконується, що сповіщення НЕ надсилається, якщо споживання менше за ліміт.
         /// </summary>
         [Fact]
         public void CheckForOverload_UsageWithinLimit_NeverSendsAlert()
@@ -102,6 +85,30 @@ namespace SmartHomeTests
             var devices = new List<Device>
             {
                 new Device { Id = 1, IsOn = true, PowerUsageWatts = 1000 } // 1.0 kWh
+            };
+            var plan = new EnergyPlan { DailyLimitKwh = 5.0 };
+
+            _deviceRepoMock.Setup(r => r.GetAll()).Returns(devices);
+            _planRepoMock.Setup(r => r.GetCurrentPlan()).Returns(plan);
+
+            // Act
+            _monitorService.CheckForOverload();
+
+            // Assert
+            _notifyMock.Verify(n => n.SendAlert(It.IsAny<string>()), Times.Never);
+        }
+
+        /// <summary>
+        /// Перевірка: Verify(..., Times.Never) — граничне значення
+        /// Переконується, що сповіщення НЕ надсилається, коли споживання точно дорівнює ліміту.
+        /// </summary>
+        [Fact]
+        public void CheckForOverload_UsageEqualsLimit_NeverSendsAlert()
+        {
+            // Arrange
+            var devices = new List<Device>
+            {
+                new Device { Id = 1, IsOn = true, PowerUsageWatts = 5000 } // 5.0 kWh
             };
             var plan = new EnergyPlan { DailyLimitKwh = 5.0 };
 
